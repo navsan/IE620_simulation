@@ -43,7 +43,7 @@ def main():
   M2 = Machine(env, 'M2', Uni(120,300))
   M3 = Machine(env, 'M3', Normal(300,30))
   M4 = Machine(env, 'M4', Normal(360,60))
-  FPS = FinalProductStorage(env)
+  FPS = FinalProductStorage(env, Uni(10*60, 500*60), Normal(80,5))
 
   RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60))
   M1_M2_C = Channel(env, M1, M2, Uni(10,60))
