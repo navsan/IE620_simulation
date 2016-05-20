@@ -32,6 +32,7 @@ from random_variates import *
 
 
 # import random
+import matplotlib.pyplot as plt
 import simpy
 
 
@@ -39,7 +40,7 @@ def main():
   env = simpy.Environment()
 
   RMS = RawMaterialStorage(env)
-  M1 = Machine(env, 'M1', Uni(20,120))
+  M1 = Machine(env, 'M1', Uni(20,120), out_size=10)
   M2 = Machine(env, 'M2', Uni(120,300))
   M3 = Machine(env, 'M3', Normal(300,30))
   M4 = Machine(env, 'M4', Normal(360,60))
@@ -63,5 +64,14 @@ def main():
   for c in (RMS_M1_C, M2_FPS_C):
     c.finalize()
     print c.wait_fraction()
+
+  for m in (M1, M2, M3, M4):
+    times, vals = m.get_TS_items_processed()
+    plt.step(times, vals, label=m.name)
+  plt.grid(True)
+  plt.xlabel('Time (s)')
+  plt.ylabel('Num items processed')
+  plt.legend(loc='upper left')
+  plt.show()
 
 main()

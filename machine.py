@@ -39,12 +39,6 @@ class Machine:
         self.pprint ('sent an item')
         self.env.process(self.out_channel.send(self.out_size))
 
-  # def dispose(self):
-  #   self.pprint('disposed an item')
-
-  # def generate(self):
-  #   self.pprint('generated an item')
-
   def process_item(self):
     self.pprint('started processing an item')
     self.stats['proc_start'].append(self.env.now)
@@ -60,3 +54,10 @@ class Machine:
 
   def busy_fraction(self):
     return self.stats['busy_time'] / self.env.now
+
+  def get_TS_items_processed(self):
+    times = self.stats['proc_finish']
+    times.insert(0,0)
+    vals = range(0,len(times) * self.out_size, self.out_size)
+    return (times, vals)
+    

@@ -37,7 +37,8 @@ class FinalProductStorage:
       self.pprint('satisfied order. Inventory level ',
                   str(self.inventory.level))
     else:
-      yield self.inventory.get(self.inventory.level)
+      if self.inventory.level > 0:
+        yield self.inventory.get(self.inventory.level)
       self.stats['shortfall_qty'] += order_qty - self.inventory.level
       self.pprint('could not satisfy order. Overall shortfall',
                   str(self.stats['shortfall_qty']))
