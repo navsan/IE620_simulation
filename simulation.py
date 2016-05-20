@@ -36,27 +36,10 @@ import matplotlib.pyplot as plt
 import simpy
 
 
-def main():
-  env = simpy.Environment()
-
-  RMS = RawMaterialStorage(env)
-  M1 = Machine(env, 'M1', Uni(20,120), out_size=10)
-  M2 = Machine(env, 'M2', Uni(120,300))
-  M3 = Machine(env, 'M3', Normal(300,30))
-  M4 = Machine(env, 'M4', Normal(360,60))
-  FPS = FinalProductStorage(env, Uni(10*60, 500*60), Normal(80,5))
-
-  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60))
-  M1_M2_C = Channel(env, M1, M2, Uni(10,60))
-  M2_M3_C = Channel(env, M2, M3, Uni(10,60))
-  M3_M4_C = Channel(env, M3, M4, Uni(10,60))
-  M2_FPS_C = AGVChannelToStorage(env, M4, FPS, Constant(60), agv=RMS_M1_C.agv)
-
+def run_simulation():
   print 'Starting simulation now'
   env.run(until=24*60*60)
 
-  # print M1.stats
-  # print M2.stats
   for m in (M1, M2, M3, M4):
     m.finalize()
     print m.busy_fraction()
@@ -65,6 +48,7 @@ def main():
     c.finalize()
     print c.wait_fraction()
 
+def show_machine_items_processed():
   for m in (M1, M2, M3, M4):
     times, vals = m.get_TS_items_processed()
     plt.step(times, vals, label=m.name)
@@ -74,4 +58,45 @@ def main():
   plt.legend(loc='upper left')
   plt.show()
 
-main()
+def show_FPS_inventory_level():
+  times, vals = FPS.get_TS_inventory_level()
+  plt.step(times, vals, label='Final Inventory Level')
+  plt.grid(True)
+  plt.xlabel('Time (s)')
+  plt.ylabel('Num products')
+  plt.legend(loc = 'upper left')
+  plt.show()
+
+def show_plots():
+  # show_machine_items_processed()
+  show_FPS_inventory_level()
+
+#==============================================================================
+#                 INITIALIZE
+#==============================================================================
+env = simpy.Environment()
+
+RMS = RawMaterialStorage(env)
+M1 = Machine(env, 'M1', Uni(20,120), out_size=10)
+M2 = Machine(env, 'M2', Uni(120,300))
+M3 = Machine(env, 'M3', Normal(300,30))
+M4 = Machine(env, 'M4', Normal(360,60))
+FPS = FinalProductStorage(env, Uni(10*60, 500*60), Normal(80,5))
+
+RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60))
+M1_M2_C = Channel(env, M1, M2, Uni(10,60))
+M2_M3_C = Channel(env, M2, M3, Uni(10,60))
+M3_M4_C = Channel(env, M3, M4, Uni(10,60))
+M2_FPS_C = AGVChannelToStorage(env, M4, FPS, Constant(60), agv=RMS_M1_C.agv)
+
+#==============================================================================
+#                 RUN SIMULATION
+#==============================================================================
+
+run_simulation()
+
+#==============================================================================
+#                 GENERATE PLOTS
+#==============================================================================
+
+show_plots()

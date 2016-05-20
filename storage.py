@@ -17,6 +17,7 @@ class FinalProductStorage:
     self.demand_time = demand_time
     self.demand_qty = demand_qty
     self.stats = {
+      'inventory_level': [],
       'shortfall_qty': 0,
     }
     self.env.process(self.demand())
@@ -29,6 +30,7 @@ class FinalProductStorage:
 
   def pprint_level(self):
     self.pprint('has inventory level ', str(self.inventory.level))
+    self.stats['inventory_level'].append((self.env.now, self.inventory.level))
 
   def update_inventory(self, order_qty):
     self.pprint('has inventory level ', str(self.inventory.level))
@@ -42,6 +44,7 @@ class FinalProductStorage:
       self.stats['shortfall_qty'] += order_qty - self.inventory.level
       self.pprint('could not satisfy order. Overall shortfall',
                   str(self.stats['shortfall_qty']))
+    self.stats['inventory_level'].append((self.env.now, self.inventory.level))
 
   def demand(self):
     while True:
@@ -49,3 +52,10 @@ class FinalProductStorage:
       order_qty = self.demand_qty()
       self.pprint('order arrived. Quantity: ', str(order_qty))
       yield self.env.process(self.update_inventory(order_qty))
+
+  def get_TS_inventory_level(self):
+    ts = self.stats['inventory_level']
+    times = [x[0] for x in ts]
+    vals = [x[1] for x in ts]
+    return (times, vals)
+
