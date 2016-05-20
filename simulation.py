@@ -14,95 +14,14 @@ Raw Material Storage -> M1 -> M2 -> M3 -> M4 -> Final Product Storage
 
 
 """
+from machine import Machine
+from channel import Channel
+from random_variates import *
 
-
-import random
+# import random
 import simpy
 
-SLEEP_DURATION = 10
 
-def Uni(a,b):
-  return lambda: random.uniform(a,b)
-
-def get_normal(mu, sigma, low_threshold=1):
-  r = low_threshold
-  while (r <= low_threshold):
-    r = random.normalvariate(mu, sigma)
-  return r
-
-def Normal(mu,sigma):
-  return lambda: get_normal(mu, sigma)
-
-
-class Machine:
-  def __init__(self, env, name, processing_time):
-    self.env = env
-    self.name = name
-    self.processing_time = processing_time
-    self.in_channel = None
-    self.out_channel = None
-    self.process = env.process(self.run())
-    self.stats = {}
-
-  def set_in_channel(self, chan):
-    assert not self.in_channel      # Ensure no channel previously assigned
-    self.in_channel = chan
-
-  def set_out_channel(self, chan):
-    assert not self.out_channel     # Ensure no channel previously assigned
-    self.out_channel = chan
-
-  def pprint(self, *args):
-    print self.env.now, ': ', self.name, ' '.join(args)
-
-  def run(self):
-    while True:
-      if self.in_channel:
-        print self.env.now, ': ', 'Current queue size', self.in_channel.queue.level
-        yield self.env.process(self.in_channel.get())
-        self.pprint('got an item from queue')
-      else:
-        self.generate()
-      self.pprint('started processing an item')
-      yield self.env.timeout(self.processing_time())
-      self.pprint('finished processing an item')
-      if self.out_channel:
-        self.pprint ('sent an item')
-        self.env.process(self.out_channel.send(1))
-        # yield self.env.process(self.out_channel.send(1))
-      else:
-        self.dispose()
-
-  def dispose(self):
-    self.pprint('disposed an item')
-
-  def generate(self):
-    self.pprint('generated an item')
-
-
-
-class Channel:
-  def __init__(self, env, src, dest, delay):
-    self.env = env
-    self.src = src
-    self.dest = dest
-    self.delay = delay
-    self.queue = simpy.resources.container.Container(env)
-    self.name = self.src.name + '->' + self.dest.name
-    self.src.set_out_channel(self)
-    self.dest.set_in_channel(self)
-
-  def pprint(self, *args):
-    print self.env.now, ': ', self.name, ' '.join(args)
-
-  def send(self, qty):
-    self.pprint('started sending an item')
-    yield self.env.timeout(self.delay())     # Simulate channel delay first
-    yield self.queue.put(qty)         # Place the item in the queue
-    self.pprint('delivered an item')
-
-  def get(self, qty=1):
-    yield self.queue.get(qty)
 
 
 def main():
@@ -113,4 +32,6 @@ def main():
   print 'Starting simulation now'
   env.run(until=100)
 
+  print M1.stats
+  print M2.stats
 main()
