@@ -39,23 +39,29 @@ def main():
   env = simpy.Environment()
 
   RMS = RawMaterialStorage(env)
-  M1 = Machine(env, 'M1', Uni(10,20))
-  M2 = Machine(env, 'M2', Normal(10,3))
+  M1 = Machine(env, 'M1', Uni(20,120))
+  M2 = Machine(env, 'M2', Uni(120,300))
+  M3 = Machine(env, 'M3', Normal(300,30))
+  M4 = Machine(env, 'M4', Normal(360,60))
   FPS = FinalProductStorage(env)
 
-  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(1))
-  M1_M2_C = Channel(env, M1, M2, Uni(2,5))
-  M2_FPS_C = AGVChannelToStorage(env, M2, FPS, Constant(1), agv=RMS_M1_C.agv)
+  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60))
+  M1_M2_C = Channel(env, M1, M2, Uni(10,60))
+  M2_M3_C = Channel(env, M2, M3, Uni(10,60))
+  M3_M4_C = Channel(env, M3, M4, Uni(10,60))
+  M2_FPS_C = AGVChannelToStorage(env, M4, FPS, Constant(60), agv=RMS_M1_C.agv)
 
   print 'Starting simulation now'
-  env.run(until=100)
+  env.run(until=24*60*60)
 
-  print M1.stats
-  print M2.stats
-  M1.finalize()
-  M2.finalize()
-  print M1.busy_fraction()
-  print M2.busy_fraction()
+  # print M1.stats
+  # print M2.stats
+  for m in (M1, M2, M3, M4):
+    m.finalize()
+    print m.busy_fraction()
 
+  for c in (RMS_M1_C, M2_FPS_C):
+    c.finalize()
+    print c.wait_fraction()
 
 main()

@@ -3,7 +3,7 @@ import simpy
 SLEEP_DURATION = 10
 
 class Machine:
-  def __init__(self, env, name, processing_time):
+  def __init__(self, env, name, processing_time, out_size=1):
     self.env = env
     self.name = name
     self.processing_time = processing_time
@@ -15,6 +15,7 @@ class Machine:
       'proc_finish': [],
       'busy_time': 0,
     }
+    self.out_size = out_size
     self.store = simpy.Container(env)
 
   def set_in_channel(self, chan):
@@ -36,7 +37,7 @@ class Machine:
       yield self.env.process(self.process_item())
       if self.out_channel:
         self.pprint ('sent an item')
-        self.env.process(self.out_channel.send(1))
+        self.env.process(self.out_channel.send(self.out_size))
 
   # def dispose(self):
   #   self.pprint('disposed an item')

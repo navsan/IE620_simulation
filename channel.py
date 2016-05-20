@@ -30,22 +30,45 @@ class AGVChannel(Channel):
       self.agv = simpy.Resource(env, capacity=1)
     else:
       self.agv = agv
+    self.wait_start = None
+    self.stats = {
+      'wait_time': 0,
+      'busy_time': 0,
+    }
+
+  def wait_fraction(self):
+    w = self.stats['wait_time']
+    b = self.stats['busy_time']
+    return w / (b+w)
+
+  def finalize(self):
+    if self.wait_start:
+      self.stats['wait_time'] += self.env.now - self.wait_start
+    if self.busy_start:
+      self.stats['busy_time'] += self.env.now - self.busy_start
 
 class AGVChannelToStorage(AGVChannel):
+  max_batch_size = 10
   def __init__(self, env, src, dest, delay, agv=None):
     AGVChannel.__init__(self, env, src, dest, delay, agv)
     self.current_batch_size = 0
 
   def send(self, qty=1):
     self.current_batch_size += qty
-    if (self.current_batch_size >= 10):
+    if (self.current_batch_size >= self.max_batch_size):
       self.pprint('started waiting to acquire AGV.')
+      self.wait_start = self.env.now
+      self.busy_start = self.env.now
       with self.agv.request() as req:
         yield req
         self.pprint('acquired AGV.')
+        self.stats['wait_time'] += self.env.now - self.wait_start
+        self.wait_start = None
         yield self.env.timeout(self.delay())
-        yield self.dest.inventory.put(qty)
+        yield self.dest.inventory.put(self.max_batch_size)
         self.pprint('delivered an item.')
+        self.stats['busy_time'] += self.env.now - self.busy_start
+        self.busy_start = None
         self.dest.pprint_level()
 
   def get(self, qty=1):
@@ -57,10 +80,15 @@ class AGVChannelFromStorage(AGVChannel):
  
   def get(self, qty=1):
     self.pprint('started waiting to acquire AGV.')
+    self.wait_start = self.env.now
+    self.busy_start = self.env.now
     with self.agv.request() as req:
       yield req
       yield self.src.inventory.get(qty)
       self.pprint('acquired AGV.')
+      self.stats['wait_time'] += self.env.now - self.wait_start
       yield self.env.timeout(self.delay())
+      self.stats['busy_time'] += self.env.now - self.busy_start
+      self.busy_start = None
       self.pprint('delivered an item')
 
