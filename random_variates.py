@@ -12,3 +12,6 @@ def _get_normal(mu, sigma, low_threshold=1):
 
 def Normal(mu,sigma):
   return lambda: _get_normal(mu, sigma)
+
+def Constant(t):
+  return lambda: t

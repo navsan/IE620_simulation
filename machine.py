@@ -15,6 +15,7 @@ class Machine:
       'proc_finish': [],
       'busy_time': 0,
     }
+    self.store = simpy.Container(env)
 
   def set_in_channel(self, chan):
     assert not self.in_channel      # Ensure no channel previously assigned

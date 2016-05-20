@@ -1,12 +1,12 @@
 import simpy
 
 class Channel:
-  def __init__(self, env, src, dest, delay, initial_qty=0):
+  def __init__(self, env, src, dest, delay):
     self.env = env
     self.src = src
     self.dest = dest
     self.delay = delay
-    self.queue = simpy.Container(env, init=initial_qty)
+    self.queue = simpy.Container(env)
     self.name = self.src.name + '->' + self.dest.name
     self.src.set_out_channel(self)
     self.dest.set_in_channel(self)
@@ -24,21 +24,33 @@ class Channel:
     yield self.queue.get(qty)
 
 class AGVChannel(Channel):
-  def __init__(self, env, src, dest, delay, initial_qty=0, agv=None):
-    Channel.__init__(self, env, src, dest, delay, initial_qty)
+  def __init__(self, env, src, dest, delay, agv=None):
+    Channel.__init__(self, env, src, dest, delay)
     if agv == None:
       self.agv = simpy.Resource(env, capacity=1)
     else:
       self.agv = agv
 
+class AGVChannelToStorage(AGVChannel):
   def send(self, qty=1):
     req = self.agv.request()
     yield req
-    Channel.send(self, qty)
-    self.agv.release(req)
-    
+    yield self.env.timeout(self.delay())
+    yield self.dest.inventory.put(qty)
+    self.pprint('delivered an item.')
+    self.dest.pprint_level()
+
+  def get(self, qty=1):
+    raise "AGVChannelToStorage does not support get()"
+
+class AGVChannelFromStorage(AGVChannel):
+  def send(self, qty=1):
+    raise "AGVChannelFromStorage does not support send()"
+ 
   def get(self, qty=1):
     req = self.agv.request()
     yield req
-    Channel.get(self, qty)
-    self.agv.release(req)
+    yield self.src.inventory.get(qty)
+    yield self.env.timeout(self.delay())
+    self.pprint('delivered an item')
+

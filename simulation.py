@@ -15,30 +15,13 @@ Raw Material Storage -> M1 -> M2 -> M3 -> M4 -> Final Product Storage
 
 """
 from machine import Machine
-from channel import Channel, AGVChannel
+from channel import Channel, AGVChannelFromStorage, AGVChannelToStorage
+from storage import RawMaterialStorage, FinalProductStorage
 from random_variates import *
+
 
 # import random
 import simpy
-
-class RawMaterialStorage:
-  def __init__(self, env):
-    self.env = env
-    self.name = 'RawMaterialStorage'
-
-  def set_out_channel(self, chan):
-    pass
-
-class FinalProductStorage:
-  def __init__(self, env):
-    self.env = env
-    self.name = 'FinalProductStorage'
-    self.inventory = simpy.Container(env)
-
-  def set_in_channel(self, chan):
-    pass
-
-
 
 
 def main():
@@ -50,9 +33,9 @@ def main():
   FPS = FinalProductStorage(env)
 
   # NOTE: Figure out how to make this channel pull rather than push
-  RMS_M1_C = AGVChannel(env, RMS, M1, Uni(1,5), initial_qty=simpy.core.Infinity)
+  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(1))
   M1_M2_C = Channel(env, M1, M2, Uni(2,5))
-  M2_FPS_C = AGVChannel(env, M2, FPS, Uni(2,5), agv=RMS_M1_C.agv)
+  M2_FPS_C = AGVChannelToStorage(env, M2, FPS, Constant(1), agv=RMS_M1_C.agv)
 
   print 'Starting simulation now'
   env.run(until=100)
