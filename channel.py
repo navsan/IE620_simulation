@@ -33,12 +33,14 @@ class AGVChannel(Channel):
 
 class AGVChannelToStorage(AGVChannel):
   def send(self, qty=1):
-    req = self.agv.request()
-    yield req
-    yield self.env.timeout(self.delay())
-    yield self.dest.inventory.put(qty)
-    self.pprint('delivered an item.')
-    self.dest.pprint_level()
+    self.pprint('started waiting to acquire AGV.')
+    with self.agv.request() as req:
+      yield req
+      self.pprint('acquired AGV.')
+      yield self.env.timeout(self.delay())
+      yield self.dest.inventory.put(qty)
+      self.pprint('delivered an item.')
+      self.dest.pprint_level()
 
   def get(self, qty=1):
     raise "AGVChannelToStorage does not support get()"
@@ -48,9 +50,11 @@ class AGVChannelFromStorage(AGVChannel):
     raise "AGVChannelFromStorage does not support send()"
  
   def get(self, qty=1):
-    req = self.agv.request()
-    yield req
-    yield self.src.inventory.get(qty)
-    yield self.env.timeout(self.delay())
-    self.pprint('delivered an item')
+    self.pprint('started waiting to acquire AGV.')
+    with self.agv.request() as req:
+      yield req
+      yield self.src.inventory.get(qty)
+      self.pprint('acquired AGV.')
+      yield self.env.timeout(self.delay())
+      self.pprint('delivered an item')
 

@@ -22,5 +22,5 @@ class FinalProductStorage:
     print '%.3f' % self.env.now, ': ', self.name, ' '.join(args)
 
   def pprint_level(self):
-    self.pprint('has inventory level ', self.inventory.level)
+    self.pprint('has inventory level ', str(self.inventory.level))
 
