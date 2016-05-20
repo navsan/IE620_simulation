@@ -32,15 +32,21 @@ class AGVChannel(Channel):
       self.agv = agv
 
 class AGVChannelToStorage(AGVChannel):
+  def __init__(self, env, src, dest, delay, agv=None):
+    AGVChannel.__init__(self, env, src, dest, delay, agv)
+    self.current_batch_size = 0
+
   def send(self, qty=1):
-    self.pprint('started waiting to acquire AGV.')
-    with self.agv.request() as req:
-      yield req
-      self.pprint('acquired AGV.')
-      yield self.env.timeout(self.delay())
-      yield self.dest.inventory.put(qty)
-      self.pprint('delivered an item.')
-      self.dest.pprint_level()
+    self.current_batch_size += qty
+    if (self.current_batch_size >= 10):
+      self.pprint('started waiting to acquire AGV.')
+      with self.agv.request() as req:
+        yield req
+        self.pprint('acquired AGV.')
+        yield self.env.timeout(self.delay())
+        yield self.dest.inventory.put(qty)
+        self.pprint('delivered an item.')
+        self.dest.pprint_level()
 
   def get(self, qty=1):
     raise "AGVChannelToStorage does not support get()"
