@@ -67,6 +67,7 @@ class AGVChannelToStorage(AGVChannel):
         yield self.env.timeout(self.delay())
         yield self.dest.inventory.put(self.max_batch_size)
         self.pprint('delivered an item.')
+        self.current_batch_size = 0
         self.stats['busy_time'] += self.env.now - self.busy_start
         self.busy_start = None
         self.dest.pprint_level()
