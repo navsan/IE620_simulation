@@ -35,8 +35,11 @@ import random
 import matplotlib.pyplot as plt
 import simpy
 
-NUM_RUNS = 30
+NUM_RUNS = 3
 RUN_DURATION = 30 * 24 * 60 * 60
+s = 20
+S = 150
+
 
 def run_simulation(seed=0):
   print '-' * 60
@@ -62,13 +65,15 @@ def initialize_stats():
     }
   for c in (RMS_M1_C, M4_FPS_C):
     stats[c.name] = {
-      'wait_fraction': 0
+      'wait_fraction': 0,
+      'sleep_fraction': 0,
     }
   stats[FPS.name] = {
     'num_shortfalls': 0,
     'num_orders': 0,
     'shortfall_qty': 0,
     'total_demand_qty': 0,
+    'avg_inventory_level': 0,
   }
 
 def update_stats():
@@ -79,10 +84,13 @@ def update_stats():
 
   for c in (RMS_M1_C, M4_FPS_C):
     stats[c.name]['wait_fraction'] += c.wait_fraction()
+    stats[c.name]['sleep_fraction'] += c.sleep_fraction()
 
   for k in ['num_shortfalls', 'num_orders',
             'shortfall_qty', 'total_demand_qty']:
     stats[FPS.name][k] += FPS.stats[k]
+  _,vals = FPS.get_TS_inventory_level()
+  stats[FPS.name]['avg_inventory_level'] += sum(vals)*1.0/len(vals)
 
 def finalize_stats():
   global stats
@@ -91,15 +99,17 @@ def finalize_stats():
     stats[m.name]['utilization_rate'] /= NUM_RUNS 
 
   for c in (RMS_M1_C, M4_FPS_C):
-    stats[c.name]['wait_fraction'] /= NUM_RUNS 
+    stats[c.name]['wait_fraction'] /= NUM_RUNS
+    stats[c.name]['sleep_fraction'] /= NUM_RUNS
 
   for k in ['num_shortfalls', 'num_orders',
-            'shortfall_qty', 'total_demand_qty']:
+            'shortfall_qty', 'total_demand_qty', 'avg_inventory_level']:
     stats[FPS.name][k] /= NUM_RUNS
 
 def print_stats():
   global stats
   print '-' * 60
+  print s, S
   for k,d in stats.iteritems():
     print '-' * 20,  k, '-' * 20
     for k1, d1 in d.iteritems():
@@ -149,9 +159,9 @@ def initialize():
   M3 = Machine(env, 'M3', Normal(300,30))
   M4 = Machine(env, 'M4', Normal(360,60))
   FPS = FinalProductStorage(env, demand_time=Uni(600, 30000),
-                            demand_qty=Normal(80,5))
+                            demand_qty=Normal(70,5))
 
-  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60))
+  RMS_M1_C = AGVChannelFromStorage(env, RMS, M1, Constant(60), FPS, s, S)
   M1_M2_C = Channel(env, M1, M2, Uni(10,60))
   M2_M3_C = Channel(env, M2, M3, Uni(10,60))
   M3_M4_C = Channel(env, M3, M4, Uni(10,60))

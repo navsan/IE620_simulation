@@ -34,12 +34,20 @@ class AGVChannel(Channel):
     self.stats = {
       'wait_time': 0,
       'busy_time': 0,
+      'sleep_time': 0,
     }
 
   def wait_fraction(self):
+    s = self.stats['sleep_time']
     w = self.stats['wait_time']
     b = self.stats['busy_time']
-    return w / (b+w)
+    return w / (s+b+w)
+
+  def sleep_fraction(self):
+    s = self.stats['sleep_time']
+    w = self.stats['wait_time']
+    b = self.stats['busy_time']
+    return s / (s+b+w)
 
   def finalize(self):
     if self.wait_start:
@@ -76,10 +84,24 @@ class AGVChannelToStorage(AGVChannel):
     raise "AGVChannelToStorage does not support get()"
 
 class AGVChannelFromStorage(AGVChannel):
+  def __init__(self, env, src, dest, delay, fps, s, S, agv=None):
+    AGVChannel.__init__(self, env, src, dest, delay, agv)
+    self.fps = fps
+    self.s = s
+    self.S = S
+
   def send(self, qty=1):
     raise "AGVChannelFromStorage does not support send()"
- 
+
+  def sleep_if_inventory_level_OK(self):
+    while self.fps.inventory.level < self.S and self.fps.inventory.level > self.s:
+      self.pprint('inventory level is ', str(self.fps.inventory.level),
+                  '. Sleeping.')
+      self.stats['sleep_time'] += 10
+      yield self.env.timeout(10)
+
   def get(self, qty=1):
+    yield self.env.process(self.sleep_if_inventory_level_OK())
     self.pprint('started waiting to acquire AGV.')
     self.wait_start = self.env.now
     self.busy_start = self.env.now
